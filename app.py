@@ -67,7 +67,6 @@ class BankDataAnalyzer:
             'Loans to Nonresidential Properties': "(YTD, $) Total loans for nonresidential properties.",
             'Owner-Occupied Nonresidential Properties Loans': "(YTD, $) Loans for owner-occupied nonresidential properties.",
             'Non-OOC Nonresidential Properties Loans': "(YTD, $) Loans for non-owner-occupied nonresidential properties.",
-            'RE Construction and Land Development': "(YTD, $) Real estate construction and land development loans.",
             'Commercial Real Estate Loans not Secured by Real Estate': "(YTD, $) Commercial real estate loans that are not secured by real estate.",
             'Commercial and Industrial Loans': "(YTD, $) Loans for commercial and industrial purposes, excluding real estate-secured loans.",
             'Agriculture Loans': "(YTD, $) Loans to finance agricultural production and other loans to farmers.",
@@ -81,6 +80,8 @@ class BankDataAnalyzer:
             'Total Recoveries': "(YTD, $) Total recoveries of loans and leases previously charged off.",
             'Total Loans and Leases Net Charge-Offs Quarterly': "(Qtly, $) Total loans and leases net charge-offs for the quarter.",
             'Net Income': "(YTD, $) Net income earned by the entity.",
+            'RE Construction and Land Development': "(YTD, $) Real estate construction and land development loans.",
+            'RE Construction and Land Development to Tier 1 + ACL': "(Qtly, %) Real estate construction and land development loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Common Equity Tier 1 Before Adjustments': "(YTD, $) Common Equity Tier 1 capital before adjustments.",
             'Bank Equity Capital': "(YTD, $) Total bank equity capital.",
             'Perpetual Preferred Stock': "(YTD, $) The amount of perpetual preferred stock issued by the bank.",
@@ -104,7 +105,6 @@ class BankDataAnalyzer:
             'Total Risk-Based Capital Ratio': "(Qtly, %) Total risk-based capital ratio.",
             'Efficiency Ratio': "(YTD, %) The efficiency ratio of the entity.",
             'Real Estate Loans to Tier 1 + ACL': "(Qtly, %) Real Estate Loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
-            'RE Construction and Land Development to Tier 1 + ACL': "(Qtly, %) Real estate construction and land development loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Commercial RE to Tier 1 + ACL': "(Qtly, %) Sum of RE Construction and Land Development, Multifamily, Loans to Nonresidential Properties, and Commercial Real Estate Loans not Secured by Real Estate as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Non-Owner Occupied CRE 3-Year Growth Rate': "(%) 3-year annualized growth rate of Non-Owner Occupied Commercial Real Estate, which includes RE Construction and Land Development, Multifamily, Non-OOC Nonresidential Properties Loans, and Commercial Real Estate Loans not Secured by Real Estate.",
             'C&I Loans to Tier 1 + ACL': "(Qtly, %) Commercial and Industrial Loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
@@ -139,9 +139,8 @@ class BankDataAnalyzer:
             "CERT,REPDTE,ASSET,DEP,LNLSGR,LNLSNET,SC,LNRE,LNCI,LNAG,LNCRCD,LNCONOTH,LNATRES,"
             "P3ASSET,P9ASSET,RBCT1J,DRLNLS,CRLNLS,NETINC,ERNASTR,NPERFV,P3ASSETR,P9ASSETR,"
             "NIMY,NTLNLSR,LNATRESR,NCLNLSR,ROA,ROE,RBC1AAJ,RBCT2,RBCRWAJ,LNLSDEPR,"
-            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,LNRENRES,"
-            "LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,"
-            "CT1BADJ,EQ,EQPP"
+            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,"
+            "LNRENRES,LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,CT1BADJ,EQ,EQPP"
         )
 
         for bank_item in bank_info:
@@ -159,11 +158,9 @@ class BankDataAnalyzer:
                     bank_data = bank['data']
                     if 'NAME' in bank_data and 'CERT' in bank_data:
                         self.institutions_data[bank_data['NAME']] = bank_data
-                        financials = self.get_financials(
-                            bank_data['CERT'], 
-                            f"REPDTE:[{start_date} TO {end_date}]",
-                            fields=financial_fields
-                        )
+                        financials = self.get_financials(bank_data['CERT'], 
+                                                        f"REPDTE:[{start_date} TO {end_date}]", 
+                                                        fields=financial_fields)
                         self.financials_data[bank_data['NAME']] = [
                             f['data'] for f in financials if isinstance(f, dict) and 'data' in f
                         ]
@@ -314,7 +311,7 @@ class BankDataAnalyzer:
 
 def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, end_date):
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    server = app.server
+    server = app.server  
     
     start_datetime = pd.to_datetime(start_date, format='%Y%m%d')
     end_datetime = pd.to_datetime(end_date, format='%Y%m%d')
@@ -356,10 +353,27 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
     bank_name_mapping = {
         "Flagstar Bank, National Association": "Flagstar Bank",
-        "The Huntington National Bank": "Huntington",
-        "Regions Bank": "Regions",
-        "Wells Fargo Bank, National Association": "Wells Fargo"
-        # Add additional mappings if needed
+        "The Huntington National Bank": "The Huntington National Bank",
+        "Regions Bank": "Regions Bank",
+        "Wells Fargo Bank, National Association": "Wells Fargo",
+        "Bank of America, National Association": "Bank of America",
+        "Citibank, National Association": "Citibank",
+        "JPMorgan Chase Bank, National Association": "JPMorgan Chase",
+        "U.S. Bank National Association": "U.S. Bank",
+        "PNC Bank, National Association": "PNC Bank",
+        "Truist Bank": "Truist Bank",
+        "Goldman Sachs Bank USA": "Goldman Sachs",
+        "Morgan Stanley Bank, National Association": "Morgan Stanley",
+        "TD Bank, National Association": "TD Bank",
+        "Capital One, National Association": "Capital One",
+        "The Bank of New York Mellon": "BNY Mellon",
+        "Fifth Third Bank, National Association": "Fifth Third Bank",
+        "Citizens Bank, National Association": "Citizens Bank",
+        "Ally Bank": "Ally Bank",
+        "KeyBank National Association": "KeyBank",
+        "Discover Bank": "Discover Bank",
+        "Synchrony Bank": "Synchrony Bank",
+        "Santander Bank, N.A.": "Santander Bank"
     }
 
     df['Bank'] = df['Bank'].map(bank_name_mapping)
@@ -378,9 +392,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
         "Fifth Third Bank",
         "Citizens Bank",
         "KeyBank",
-        "Santander Bank",
-        "Huntington",
-        "Regions"
+        "Santander Bank"
     ]
 
     app.index_string = '''
@@ -510,7 +522,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                 .stat-section-title {
                     font-weight: bold;
                     margin-bottom: 5px;
-                    color: #cd0000;
+                    color: #D4AF37;
                 }
                 .stat-row {
                     display: flex;
@@ -521,10 +533,10 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     font-weight: bold;
                 }
                 .wf-highlight {
-                    color: #cd0000;
+                    color: #D4AF37;
                 }
                 .add-all-btn {
-                    background-color: #cd0000;
+                    background-color: #D4AF37;
                     color: #ffffff;
                     border: none;
                     padding: 5px 10px;
@@ -535,7 +547,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     transition: background-color 0.3s;
                 }
                 .add-all-btn:hover {
-                    background-color: #a50000;
+                    background-color: #b29762;
                 }
             </style>
         </head>
@@ -662,7 +674,9 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
     )
     def update_bar_chart(selected_metric, selected_date, selected_peers, trend_timeline):
         selected_date = pd.to_datetime(selected_date).to_pydatetime()
+
         selected_banks = ['Flagstar Bank'] + selected_peers
+
         filtered_df = df[(df['Date'] == selected_date) & (df['Bank'].isin(selected_banks))]
 
         if filtered_df.empty:
@@ -974,6 +988,8 @@ def main():
     analyzer = BankDataAnalyzer()
     bank_info = [
         {"cert": "32541", "name": "Flagstar Bank, National Association"},
+        {"cert": "6560", "name": "The Huntington National Bank"},
+        {"cert": "12368", "name": "Regions Bank"},
         {"cert": "3511", "name": "Wells Fargo Bank, National Association"},
         {"cert": "3510", "name": "Bank of America, National Association"},
         {"cert": "7213", "name": "Citibank, National Association"},
@@ -992,9 +1008,7 @@ def main():
         {"cert": "17534", "name": "KeyBank National Association"},
         {"cert": "5649", "name": "Discover Bank"},
         {"cert": "27314", "name": "Synchrony Bank"},
-        {"cert": "29950", "name": "Santander Bank, N.A."},
-        {"cert": "6560", "name": "The Huntington National Bank"},
-        {"cert": "12368", "name": "Regions Bank"}
+        {"cert": "29950", "name": "Santander Bank, N.A."}
     ]
     start_date = '20000331'
     end_date = '20240630'
