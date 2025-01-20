@@ -11,6 +11,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 from scipy import stats
+import os
 
 BASE_URL = "https://banks.data.fdic.gov/api"
 
@@ -19,38 +20,18 @@ class BankDataAnalyzer:
         self.institutions_data = {}
         self.financials_data = {}
         self.dollar_format_metrics = [
-            'Total Assets', 
-            'Total Deposits', 
-            'Total Loans and Leases', 
-            'Net Loans and Leases',
-            'Total Securities', 
-            'Real Estate Loans',
-            'Loans to Residential Properties',
-            'Multifamily',
-            'Farmland Real Estate Loans',
-            'Loans to Nonresidential Properties',
-            'Owner-Occupied Nonresidential Properties Loans',
-            'Non-OOC Nonresidential Properties Loans',
-            'RE Construction and Land Development',
-            '1-4 Family Residential Construction and Land Development Loans',
+            'Total Assets', 'Total Deposits', 'Total Loans and Leases', 'Net Loans and Leases',
+            'Total Securities', 'Real Estate Loans', 'Loans to Residential Properties', 'Multifamily',
+            'Farmland Real Estate Loans', 'Loans to Nonresidential Properties',
+            'Owner-Occupied Nonresidential Properties Loans', 'Non-OOC Nonresidential Properties Loans',
+            'RE Construction and Land Development', '1-4 Family Residential Construction and Land Development Loans',
             'Other Construction, All Land Development and Other Land Loans',
-            'Commercial Real Estate Loans not Secured by Real Estate',
-            'Commercial and Industrial Loans',
-            'Agriculture Loans', 
-            'Credit Cards', 
-            'Consumer Loans',
-            'Allowance for Credit Loss', 
-            'Past Due 30-89 Days',
-            'Past Due 90+ Days', 
-            'Tier 1 (Core) Capital', 
-            'Total Charge-Offs',
-            'Total Recoveries', 
-            'Net Income', 
-            'Total Loans and Leases Net Charge-Offs Quarterly',
-            'Common Equity Tier 1 Before Adjustments',
-            'Bank Equity Capital',
-            'CECL Transition Amount',
-            'Perpetual Preferred Stock'
+            'Commercial Real Estate Loans not Secured by Real Estate', 'Commercial and Industrial Loans',
+            'Agriculture Loans', 'Credit Cards', 'Consumer Loans', 'Allowance for Credit Loss',
+            'Past Due 30-89 Days', 'Past Due 90+ Days', 'Tier 1 (Core) Capital',
+            'Total Charge-Offs', 'Total Recoveries', 'Net Income',
+            'Total Loans and Leases Net Charge-Offs Quarterly', 'Common Equity Tier 1 Before Adjustments',
+            'Bank Equity Capital', 'CECL Transition Amount', 'Perpetual Preferred Stock'
         ]
         self.metric_definitions = {
             'Total Assets': "(YTD, $) The sum of all assets owned by the entity.",
@@ -106,11 +87,11 @@ class BankDataAnalyzer:
             'Efficiency Ratio': "(YTD, %) The efficiency ratio of the entity.",
             'Real Estate Loans to Tier 1 + ACL': "(Qtly, %) Real Estate Loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Commercial RE to Tier 1 + ACL': "(Qtly, %) Sum of RE Construction and Land Development, Multifamily, Loans to Nonresidential Properties, and Commercial Real Estate Loans not Secured by Real Estate as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
-            'Non-Owner Occupied CRE 3-Year Growth Rate': "(%) 3-year annualized growth rate of Non-Owner Occupied Commercial Real Estate, which includes RE Construction and Land Development, Multifamily, Non-OOC Nonresidential Properties Loans, and Commercial Real Estate Loans not Secured by Real Estate.",
+            'Non-Owner Occupied CRE 3-Year Growth Rate': "(%) 3-year annualized growth rate of Non-Owner Occupied Commercial Real Estate...",
             'C&I Loans to Tier 1 + ACL': "(Qtly, %) Commercial and Industrial Loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Agriculture Loans to Tier 1 + ACL': "(Qtly, %) Agriculture Loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
             'Credit Cards to Tier 1 + ACL': "(Qtly, %) Credit Card loans as a percentage of Tier 1 (Core) Capital plus Allowance for Credit Loss.",
-            'Net Charge-Offs / Allowance for Credit Loss': "(Qtly, %) Ratio of Quarterly Net Charge-Offs to Allowance for Credit Loss.",
+            'Net Charge-Offs / Allowance for Credit Loss': "(Qtly, %) Ratio of Quarterly Net Charge-Offs to Allowance for Credit Loss."
         }
 
     def get_data(self, endpoint: str, params: Dict) -> Dict:
@@ -135,11 +116,13 @@ class BankDataAnalyzer:
 
     def fetch_data(self, bank_info: List[Union[str, Dict]], start_date: str, end_date: str):
         institution_fields = "NAME,CERT"
-        financial_fields = ("CERT,REPDTE,ASSET,DEP,LNLSGR,LNLSNET,SC,LNRE,LNCI,LNAG,LNCRCD,LNCONOTH,LNATRES,"
-                            "P3ASSET,P9ASSET,RBCT1J,DRLNLS,CRLNLS,NETINC,ERNASTR,NPERFV,P3ASSETR,P9ASSETR,"
-                            "NIMY,NTLNLSR,LNATRESR,NCLNLSR,ROA,ROE,RBC1AAJ,RBCT2,RBCRWAJ,LNLSDEPR,"
-                            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,"
-                            "LNRENRES,LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,CT1BADJ,EQ,EQPP")
+        financial_fields = (
+            "CERT,REPDTE,ASSET,DEP,LNLSGR,LNLSNET,SC,LNRE,LNCI,LNAG,LNCRCD,LNCONOTH,LNATRES,"
+            "P3ASSET,P9ASSET,RBCT1J,DRLNLS,CRLNLS,NETINC,ERNASTR,NPERFV,P3ASSETR,P9ASSETR,"
+            "NIMY,NTLNLSR,LNATRESR,NCLNLSR,ROA,ROE,RBC1AAJ,RBCT2,RBCRWAJ,LNLSDEPR,"
+            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,"
+            "LNRENRES,LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,CT1BADJ,EQ,EQPP"
+        )
 
         for bank_item in bank_info:
             if isinstance(bank_item, str):
@@ -156,8 +139,14 @@ class BankDataAnalyzer:
                     bank_data = bank['data']
                     if 'NAME' in bank_data and 'CERT' in bank_data:
                         self.institutions_data[bank_data['NAME']] = bank_data
-                        financials = self.get_financials(bank_data['CERT'], f"REPDTE:[{start_date} TO {end_date}]", fields=financial_fields)
-                        self.financials_data[bank_data['NAME']] = [f['data'] for f in financials if isinstance(f, dict) and 'data' in f]
+                        financials = self.get_financials(
+                            bank_data['CERT'], 
+                            f"REPDTE:[{start_date} TO {end_date}]", 
+                            fields=financial_fields
+                        )
+                        self.financials_data[bank_data['NAME']] = [
+                            f['data'] for f in financials if isinstance(f, dict) and 'data' in f
+                        ]
                     else:
                         print(f"Warning: Required fields missing for bank: {bank_item}")
                 else:
@@ -306,7 +295,7 @@ class BankDataAnalyzer:
 def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, end_date):
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
     server = app.server  
-    
+
     start_datetime = pd.to_datetime(start_date, format='%Y%m%d')
     end_datetime = pd.to_datetime(end_date, format='%Y%m%d')
 
@@ -345,12 +334,10 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
     available_metrics = [metric for metric in metric_order if metric in df.columns]
 
-    # Reorient bank name mapping for Flagstar orientation and remove other mappings not needed
     bank_name_mapping = {
         "Flagstar Bank, National Association": "Flagstar Bank",
         "The Huntington National Bank": "The Huntington National Bank",
         "Regions Bank": "Regions Bank",
-        # Retain other necessary mappings for peer banks if required
         "Wells Fargo Bank, National Association": "Wells Fargo",
         "Bank of America, National Association": "Bank of America",
         "Citibank, National Association": "Citibank",
@@ -374,7 +361,6 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
     df['Bank'] = df['Bank'].map(bank_name_mapping)
 
-    # Define peer groups without card peers
     bank_peers = [
         "Bank of America",
         "Citibank",
@@ -392,7 +378,6 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
         "Santander Bank"
     ]
 
-    # Custom CSS with goldish-yellowish theme for Flagstar Bank
     app.index_string = '''
     <!DOCTYPE html>
     <html>
@@ -402,6 +387,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
             {%favicon%}
             {%css%}
             <style>
+                /* CSS styles with goldish-yellowish theme for Flagstar Bank elements */
                 body {
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                     background-color: #fdfaf0;
@@ -520,7 +506,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                 .stat-section-title {
                     font-weight: bold;
                     margin-bottom: 5px;
-                    color: #cd0000;
+                    color: #D4AF37;
                 }
                 .stat-row {
                     display: flex;
@@ -531,10 +517,10 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     font-weight: bold;
                 }
                 .wf-highlight {
-                    color: #cd0000;
+                    color: #D4AF37;
                 }
                 .add-all-btn {
-                    background-color: #cd0000;
+                    background-color: #D4AF37;
                     color: #ffffff;
                     border: none;
                     padding: 5px 10px;
@@ -545,9 +531,11 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     transition: background-color 0.3s;
                 }
                 .add-all-btn:hover {
-                    background-color: #a50000;
+                    background-color: #b29762;
                 }
             </style>
+            {%favicon%}
+            {%css%}
         </head>
         <body>
             {%app_entry%}
@@ -672,10 +660,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
     )
     def update_bar_chart(selected_metric, selected_date, selected_peers, trend_timeline):
         selected_date = pd.to_datetime(selected_date).to_pydatetime()
-
-        # Always include Flagstar Bank
         selected_banks = ['Flagstar Bank'] + selected_peers
-
         filtered_df = df[(df['Date'] == selected_date) & (df['Bank'].isin(selected_banks))]
 
         if filtered_df.empty:
@@ -696,8 +681,6 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
             return empty_fig, empty_overview, "", f"No data available for {len(selected_banks)} selected banks"
 
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False)
-        
-        # Use goldish color for Flagstar Bank, gray for others
         colors = ['#D4AF37' if bank == 'Flagstar Bank' else '#808080' for bank in sorted_df['Bank']]
 
         fig = make_subplots(rows=1, cols=2, specs=[[{"secondary_y": True}, {"secondary_y": True}]], 
@@ -776,20 +759,14 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
             dtick = 'M24'
             tickformat = '%Y'
 
-        fig.update_xaxes(
-            title_text=None, 
-            row=1, 
-            col=2,
-            tickformat=tickformat,
-            dtick=dtick,
-            showgrid=True, 
-            gridcolor='rgba(0, 0, 0, 0.1)', 
-            gridwidth=1,
-            tickangle=-45,
-        )
+        fig.update_xaxes(title_text=None, row=1, col=2,
+                         tickformat=tickformat, dtick=dtick,
+                         showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', 
+                         gridwidth=1, tickangle=-45)
         fig.update_yaxes(title_text=None, row=1, col=2,
                          range=[trend_min - trend_padding, trend_max + trend_padding],
-                         showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', gridwidth=1,
+                         showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', 
+                         gridwidth=1,
                          tickformat=',.0f' if selected_metric in dollar_format_metrics else '.2f')
 
         fig.add_annotation(
@@ -813,7 +790,9 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
         flagstar_value = filtered_df[filtered_df['Bank'] == 'Flagstar Bank'][selected_metric].values[0] if 'Flagstar Bank' in filtered_df['Bank'].values else None
 
         wf_percentile = stats.percentileofscore(filtered_df[selected_metric], flagstar_value) if flagstar_value is not None else None
-        wf_rank = filtered_df[selected_metric].rank(ascending=False, method='min')[filtered_df['Bank'] == 'Flagstar Bank'].values[0] if flagstar_value is not None else None
+        wf_rank = (filtered_df[selected_metric]
+                   .rank(ascending=False, method='min')[filtered_df['Bank'] == 'Flagstar Bank']
+                   .values[0] if flagstar_value is not None else None)
         q1, q3 = np.percentile(filtered_df[selected_metric], [25, 75])
         iqr = q3 - q1
 
@@ -1029,6 +1008,10 @@ def main():
     metrics_df = metrics_df[sorted_columns]
 
     app, server = create_dashboard(metrics_df, analyzer.dollar_format_metrics, analyzer.metric_definitions, start_date, end_date)
+    
+    global df
+    df = metrics_df.copy()
+    
     return app, server
 
 app, server = main()
