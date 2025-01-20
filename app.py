@@ -135,13 +135,11 @@ class BankDataAnalyzer:
 
     def fetch_data(self, bank_info: List[Union[str, Dict]], start_date: str, end_date: str):
         institution_fields = "NAME,CERT"
-        financial_fields = (
-            "CERT,REPDTE,ASSET,DEP,LNLSGR,LNLSNET,SC,LNRE,LNCI,LNAG,LNCRCD,LNCONOTH,LNATRES,"
-            "P3ASSET,P9ASSET,RBCT1J,DRLNLS,CRLNLS,NETINC,ERNASTR,NPERFV,P3ASSETR,P9ASSETR,"
-            "NIMY,NTLNLSR,LNATRESR,NCLNLSR,ROA,ROE,RBC1AAJ,RBCT2,RBCRWAJ,LNLSDEPR,"
-            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,"
-            "LNRENRES,LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,CT1BADJ,EQ,EQPP"
-        )
+        financial_fields = ("CERT,REPDTE,ASSET,DEP,LNLSGR,LNLSNET,SC,LNRE,LNCI,LNAG,LNCRCD,LNCONOTH,LNATRES,"
+                            "P3ASSET,P9ASSET,RBCT1J,DRLNLS,CRLNLS,NETINC,ERNASTR,NPERFV,P3ASSETR,P9ASSETR,"
+                            "NIMY,NTLNLSR,LNATRESR,NCLNLSR,ROA,ROE,RBC1AAJ,RBCT2,RBCRWAJ,LNLSDEPR,"
+                            "LNLSNTV,EEFFR,LNRESNCR,ELNANTR,IDERNCVR,NTLNLSQ,LNRECONS,"
+                            "LNRENRES,LNRENROW,LNRENROT,LNRERES,LNREMULT,LNREAG,LNRECNFM,LNRECNOT,LNCOMRE,CT1BADJ,EQ,EQPP")
 
         for bank_item in bank_info:
             if isinstance(bank_item, str):
@@ -158,12 +156,8 @@ class BankDataAnalyzer:
                     bank_data = bank['data']
                     if 'NAME' in bank_data and 'CERT' in bank_data:
                         self.institutions_data[bank_data['NAME']] = bank_data
-                        financials = self.get_financials(bank_data['CERT'], 
-                                                        f"REPDTE:[{start_date} TO {end_date}]", 
-                                                        fields=financial_fields)
-                        self.financials_data[bank_data['NAME']] = [
-                            f['data'] for f in financials if isinstance(f, dict) and 'data' in f
-                        ]
+                        financials = self.get_financials(bank_data['CERT'], f"REPDTE:[{start_date} TO {end_date}]", fields=financial_fields)
+                        self.financials_data[bank_data['NAME']] = [f['data'] for f in financials if isinstance(f, dict) and 'data' in f]
                     else:
                         print(f"Warning: Required fields missing for bank: {bank_item}")
                 else:
@@ -351,10 +345,12 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
     available_metrics = [metric for metric in metric_order if metric in df.columns]
 
+    # Reorient bank name mapping for Flagstar orientation and remove other mappings not needed
     bank_name_mapping = {
         "Flagstar Bank, National Association": "Flagstar Bank",
         "The Huntington National Bank": "The Huntington National Bank",
         "Regions Bank": "Regions Bank",
+        # Retain other necessary mappings for peer banks if required
         "Wells Fargo Bank, National Association": "Wells Fargo",
         "Bank of America, National Association": "Bank of America",
         "Citibank, National Association": "Citibank",
@@ -378,6 +374,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
     df['Bank'] = df['Bank'].map(bank_name_mapping)
 
+    # Define peer groups without card peers
     bank_peers = [
         "Bank of America",
         "Citibank",
@@ -395,6 +392,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
         "Santander Bank"
     ]
 
+    # Custom CSS with goldish-yellowish theme for Flagstar Bank
     app.index_string = '''
     <!DOCTYPE html>
     <html>
@@ -522,7 +520,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                 .stat-section-title {
                     font-weight: bold;
                     margin-bottom: 5px;
-                    color: #D4AF37;
+                    color: #cd0000;
                 }
                 .stat-row {
                     display: flex;
@@ -533,10 +531,10 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     font-weight: bold;
                 }
                 .wf-highlight {
-                    color: #D4AF37;
+                    color: #cd0000;
                 }
                 .add-all-btn {
-                    background-color: #D4AF37;
+                    background-color: #cd0000;
                     color: #ffffff;
                     border: none;
                     padding: 5px 10px;
@@ -547,7 +545,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
                     transition: background-color 0.3s;
                 }
                 .add-all-btn:hover {
-                    background-color: #b29762;
+                    background-color: #a50000;
                 }
             </style>
         </head>
@@ -675,6 +673,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
     def update_bar_chart(selected_metric, selected_date, selected_peers, trend_timeline):
         selected_date = pd.to_datetime(selected_date).to_pydatetime()
 
+        # Always include Flagstar Bank
         selected_banks = ['Flagstar Bank'] + selected_peers
 
         filtered_df = df[(df['Date'] == selected_date) & (df['Bank'].isin(selected_banks))]
@@ -698,6 +697,7 @@ def create_dashboard(df, dollar_format_metrics, metric_definitions, start_date, 
 
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False)
         
+        # Use goldish color for Flagstar Bank, gray for others
         colors = ['#D4AF37' if bank == 'Flagstar Bank' else '#808080' for bank in sorted_df['Bank']]
 
         fig = make_subplots(rows=1, cols=2, specs=[[{"secondary_y": True}, {"secondary_y": True}]], 
